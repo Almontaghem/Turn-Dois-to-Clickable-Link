@@ -1,0 +1,40 @@
+Sub TurnAllURLsIntoLinks()
+    Dim doc As Document
+    Dim rng As Range
+    Set doc = ActiveDocument
+    Set rng = doc.Range
+
+    With rng.Find
+        ' Finds both "http://" and "https://"
+        .Text = "http"
+        .MatchWildcards = False
+        
+        Do While .Execute
+            ' 1. Stretch selection until a space or new line is found
+            rng.MoveEndUntil Cset:=" " & vbCr & vbLf, Count:=wdForward
+            
+            ' 2. CLEANUP LOOP:
+            ' Repeatedly remove trailing punctuation characters.
+            ' This handles cases like: "...accessed from https://google.com)."
+            ' It strips the ")." so the link stays clean.
+            Do While Right(rng.Text, 1) = "." Or _
+                     Right(rng.Text, 1) = "," Or _
+                     Right(rng.Text, 1) = ";" Or _
+                     Right(rng.Text, 1) = ":" Or _
+                     Right(rng.Text, 1) = ")" Or _
+                     Right(rng.Text, 1) = "]" Or _
+                     Right(rng.Text, 1) = ">"
+                rng.End = rng.End - 1
+            Loop
+            
+            ' 3. Create the hyperlink
+            ' Only add if there is actually text left (prevent errors on empty strings)
+            If Len(rng.Text) > 4 Then
+                doc.Hyperlinks.Add Anchor:=rng, Address:=rng.Text
+            End If
+            
+            ' 4. Move to end to continue searching
+            rng.Collapse Direction:=wdCollapseEnd
+        Loop
+    End With
+End Sub
